@@ -1,13 +1,13 @@
-# Week 04 Observations
+# Week 04 관찰 결과
 
 ## Task 1
-Stop-and-wait을 선택했고, ACK가 없으면 재전송하며 sequence number로 중복과 순서 변경을 처리했다.
-2,000 bytes 전송 시 seed 246은 323 packets, seed 999는 299 packets가 필요했고 두 경우 모두 IDENTICAL이었다.
+Stop-and-wait 방식을 선택했고, ACK가 없으면 재전송하며 시퀀스 번호로 중복과 순서 변경을 처리했다.
+2,000바이트 전송 시 seed 246은 323개, seed 999는 299개의 패킷이 필요했고 두 경우 모두 데이터가 동일했다.
 
 ## Task 2
-Handshake는 packet 1(SYN), 2(SYN-ACK), 3(ACK)이었고 Client/Server ISN은 373854892 / 2753130132였다. MSS=1400, SACK 허용, Window Scale도 확인했으며 scaled receive window는 131,072 bytes였지만 실제 in-flight는 더 작았다.
-Wi-Fi는 136.24 Mbps, 15.4 ms였고 Hotspot은 16.91 Mbps, 38.9 ms였다. 더 긴 RTT는 ACK 반환을 늦춰 congestion window의 증가와 throughput에 영향을 줄 수 있다.
+연결 과정은 패킷 1(SYN), 2(SYN-ACK), 3(ACK)이었고 클라이언트/서버 ISN은 373854892 / 2753130132였다. MSS=1400, SACK 허용, 윈도우 스케일을 확인했으며 실제 수신 윈도우는 131,072바이트였지만 전송 중인 데이터는 더 적었다.
+wi-fi는 136.24Mbps / 15.4ms, 핫스팟은 16.91Mbps / 38.9ms였다. RTT가 길어지면 ACK 반환이 늦어져 혼잡 윈도우 증가와 처리량에 영향을 줄 수 있다.
 
 ## Task 3
-Baseline은 goodput이 높지만 loss 37.4%, retx 2340, avg queue 8.8로 비효율적이었다. 내 방식은 window를 약 20 packets 근처로 유지하여 goodput 98%, loss 0.5%, avg queue 4.9로 strong을 달성했다.
-Backoff를 부드럽게 하면 goodput은 증가하지만 queue도 증가했으며, 최종 설정은 두 값의 균형을 맞췄다.
+기준 방식은 처리량이 높지만 손실률 37.4%, 재전송 2340회, 평균 대기열 8.8로 비효율적이었다. 내 방식은 윈도우를 약 20개 패킷 근처로 유지하여 기준 처리량의 98%, 손실률 0.5%, 평균 대기열 4.9로 strong을 달성했다.
+감소 폭을 줄이면 처리량은 증가하지만 대기열도 증가했으며, 최종 설정에서는 두 값의 균형을 맞췄다.
