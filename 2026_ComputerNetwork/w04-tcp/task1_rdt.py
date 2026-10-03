@@ -53,48 +53,77 @@ class UnreliableChannel:
 
 
 class Sender:
-    """Your sender.
+    """Stop-and-wait sender: keep one numbered packet in flight at a time."""
 
-    Requirements are in task1.md. The short version:
-
-      - break `data` into PAYLOAD-sized pieces and number them
-      - retransmit what is not acknowledged
-      - do not assume an ACK means what you think it means until you have
-        checked the number on it
-
-    You choose the protocol: stop-and-wait is the easiest to get right and the
-    slowest; a sliding window is the point of §3.4.3. Say which you chose and
-    why in observation.md.
-    """
+    TIMEOUT = 4
 
     def __init__(self, data_channel, ack_channel, data):
-        raise NotImplementedError("write your sender")
+        self.data_channel = data_channel
+        self.ack_channel = ack_channel
+        self.packets = [
+            ("DATA", sequence, data[start:start + PAYLOAD])
+            for sequence, start in enumerate(range(0, len(data), PAYLOAD))
+        ]
+        self.sequence = 0
+        self.waited = self.TIMEOUT  # Send the first packet on the first step.
 
     def step(self):
-        """Do one unit of work. Return False when you believe you are done."""
-        raise NotImplementedError
+        """Process one ACK and send/retransmit when needed."""
+        ack = self.ack_channel.receive()
+        if (
+            ack is not None
+            and len(ack) == 2
+            and ack[0] == "ACK"
+            and ack[1] == self.sequence
+        ):
+            self.sequence += 1
+            self.waited = self.TIMEOUT
+
+        if self.sequence >= len(self.packets):
+            return False
+
+        if self.waited >= self.TIMEOUT:
+            self.data_channel.send(self.packets[self.sequence])
+            self.waited = 0
+        else:
+            self.waited += 1
+
+        return True
 
 
 class Receiver:
-    """Your receiver. Hands back the reassembled bytes via `.data()`."""
+    """Accept each expected packet once and acknowledge every valid arrival."""
 
     def __init__(self, data_channel, ack_channel):
-        raise NotImplementedError("write your receiver")
+        self.data_channel = data_channel
+        self.ack_channel = ack_channel
+        self.expected = 0
+        self.output = bytearray()
 
     def step(self):
-        raise NotImplementedError
+        packet = self.data_channel.receive()
+        if packet is None or len(packet) != 3 or packet[0] != "DATA":
+            return
+
+        _, sequence, payload = packet
+        if sequence == self.expected:
+            self.output.extend(payload)
+            self.expected += 1
+
+        # ACK duplicates too: the original ACK may have been lost. The sender
+        # ignores this ACK unless it matches the one packet currently awaited.
+        if sequence < self.expected:
+            self.ack_channel.send(("ACK", sequence))
 
     def data(self):
         """The bytes reassembled so far."""
-        raise NotImplementedError
+        return bytes(self.output)
 
 
-# ------------------------------------------------------------------- harness
 def verify(seed=246, size=2000, max_steps=200_000):
     original = bytes(random.Random(seed).getrandbits(8) for _ in range(size))
     up, down = UnreliableChannel(seed), UnreliableChannel(seed + 1)
 
-    # Data goes out over `up`, ACKs come back over `down`. Both are unreliable.
     sender = Sender(up, down, original)
     receiver = Receiver(up, down)
 

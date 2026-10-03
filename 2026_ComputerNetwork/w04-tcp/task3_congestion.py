@@ -53,12 +53,21 @@ class YourControl:
       That distinction has a name in the textbook.
     """
 
+    """Simple congestion control using slow start and AIMD."""
+
     def __init__(self):
         self.window = 1
-        raise NotImplementedError("write your congestion control")
+        self.ssthresh = 20
+        self.first_loss = False
 
     def on_ack(self):
-        raise NotImplementedError
+        if not self.first_loss and self.window < self.ssthresh:
+            # 처음에는 빠르게 증가
+            self.window += 1
+        else:
+            # 이후에는 천천히 증가
+            self.window += 1 / self.window
 
     def on_loss(self):
-        raise NotImplementedError
+        self.first_loss = True
+        self.window = max(19, self.window * 0.6)
