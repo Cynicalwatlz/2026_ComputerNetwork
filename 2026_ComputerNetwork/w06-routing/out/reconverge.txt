@@ -1,0 +1,8 @@
+Link failure: r1 eth1 down
+r1 route change detected: 1 second
+Measurement: first observed valid alternate route to 172.19.0.0/16
+
+Link restoration: r1 eth1 up
+r1 direct route restored: 1 second
+Measurement: first observed direct OSPF route to 172.19.0.0/16
+OSPF 비용 변경 후 경로 전환 감지: 2초
